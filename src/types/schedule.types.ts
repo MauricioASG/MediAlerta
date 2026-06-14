@@ -4,8 +4,8 @@ export interface MedicationSchedule {
   id: string;
   medicationId: string;
   scheduleType: ScheduleType;
-  intervalHours?: number | null;
-  times?: string[] | null;
+  intervalHours: number | null;
+  times: string[] | null;
   createdAt: string;
   updatedAt: string;
 }
