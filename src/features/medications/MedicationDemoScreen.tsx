@@ -13,6 +13,7 @@ import {
   createMedicationSchedule,
   getSchedulesByMedicationId,
 } from '../../features/schedules';
+import { scheduleTestMedicationNotification } from '../../services/notification.service';
 import { DEFAULT_MEDICATION_TYPE } from '../../shared/constants/medicationTypes';
 import type { Medication } from '../../types/medication.types';
 import type { MedicationSchedule, ScheduleType } from '../../types/schedule.types';
@@ -182,12 +183,45 @@ export const MedicationDemoScreen = () => {
     }
   };
 
+  const handleScheduleTestNotification = async () => {
+    try {
+      await scheduleTestMedicationNotification({
+        medicationName: 'MediAlerta',
+        dosage: 'Recordatorio de prueba',
+        instructions: 'Esta notificación confirma que los recordatorios locales funcionan.',
+      });
+
+      Alert.alert(
+        'Notificación programada',
+        'Debería llegar una notificación en aproximadamente 5 segundos.',
+      );
+    } catch (error) {
+      console.error('[Notifications] Error scheduling test notification:', error);
+      Alert.alert(
+        'Error de notificación',
+        'No se pudo programar la notificación de prueba.',
+      );
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>MediAlerta</Text>
       <Text style={styles.subtitle}>
-        Prueba local de medicamentos y horarios con SQLite
+        Prueba local de medicamentos, horarios y notificaciones
       </Text>
+
+      <Pressable
+        onPress={handleScheduleTestNotification}
+        style={({ pressed }) => [
+          styles.testNotificationButton,
+          pressed && styles.buttonPressed,
+        ]}
+      >
+        <Text style={styles.testNotificationButtonText}>
+          Probar notificación en 5 segundos
+        </Text>
+      </Pressable>
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Nuevo medicamento</Text>
@@ -353,6 +387,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 15,
     color: '#6b7280',
+  },
+  testNotificationButton: {
+    marginTop: 18,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#16a34a',
+    alignItems: 'center',
+  },
+  testNotificationButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
   },
   card: {
     marginTop: 20,
