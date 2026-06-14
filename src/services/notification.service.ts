@@ -1,6 +1,14 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import {
+  createNotificationSchedule,
+  deactivateNotificationSchedulesByMedicationId,
+  getActiveNotificationSchedulesByMedicationId,
+} from '../features/notifications';
+import type { Medication } from '../types/medication.types';
+import type { MedicationSchedule } from '../types/schedule.types';
+
 const MEDIALERTA_NOTIFICATION_CHANNEL_ID = 'medialerta-reminders';
 
 Notifications.setNotificationHandler({
@@ -18,6 +26,11 @@ interface ScheduleTestNotificationInput {
   instructions?: string | null;
 }
 
+interface ParsedTime {
+  hour: number;
+  minute: number;
+}
+
 const configureAndroidNotificationChannel = async (): Promise<void> => {
   if (Platform.OS !== 'android') {
     return;
@@ -32,6 +45,39 @@ const configureAndroidNotificationChannel = async (): Promise<void> => {
       lightColor: '#2563eb',
     },
   );
+};
+
+const parseTime = (time: string): ParsedTime => {
+  const [hourValue, minuteValue] = time.split(':');
+
+  const hour = Number(hourValue);
+  const minute = Number(minuteValue);
+
+  if (
+    Number.isNaN(hour) ||
+    Number.isNaN(minute) ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    throw new Error(`Hora inválida: ${time}`);
+  }
+
+  return {
+    hour,
+    minute,
+  };
+};
+
+const buildMedicationNotificationBody = (medication: Medication): string => {
+  const bodyParts = [`Dosis: ${medication.dosage}`];
+
+  if (medication.instructions) {
+    bodyParts.push(`Instrucción: ${medication.instructions}`);
+  }
+
+  return bodyParts.join('. ');
 };
 
 export const requestNotificationPermissions = async (): Promise<boolean> => {
@@ -83,6 +129,128 @@ export const scheduleTestMedicationNotification = async ({
   });
 
   return notificationId;
+};
+
+export const cancelMedicationNotifications = async (
+  medicationId: string,
+): Promise<void> => {
+  const storedNotifications =
+    await getActiveNotificationSchedulesByMedicationId(medicationId);
+
+  await Promise.all(
+    storedNotifications.map(async (storedNotification) => {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(
+          storedNotification.notificationIdentifier,
+        );
+      } catch (error) {
+        console.warn(
+          '[Notifications] Error canceling scheduled notification:',
+          error,
+        );
+      }
+    }),
+  );
+
+  await deactivateNotificationSchedulesByMedicationId(medicationId);
+};
+
+export const scheduleMedicationNotifications = async (
+  medication: Medication,
+  schedule: MedicationSchedule,
+): Promise<string[]> => {
+  const hasPermission = await requestNotificationPermissions();
+
+  if (!hasPermission) {
+    throw new Error('El usuario no concedió permisos de notificación.');
+  }
+
+  await cancelMedicationNotifications(medication.id);
+
+  const notificationIds: string[] = [];
+
+  if (schedule.scheduleType === 'interval') {
+    if (!schedule.intervalHours || schedule.intervalHours <= 0) {
+      throw new Error('El horario por intervalo requiere horas válidas.');
+    }
+
+    const seconds = schedule.intervalHours * 60 * 60;
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `Hora de tomar ${medication.name}`,
+        body: buildMedicationNotificationBody(medication),
+        sound: 'default',
+        data: {
+          type: 'medication_reminder',
+          medicationId: medication.id,
+          scheduleId: schedule.id,
+        },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds,
+        repeats: true,
+        channelId: MEDIALERTA_NOTIFICATION_CHANNEL_ID,
+      },
+    });
+
+    await createNotificationSchedule({
+      medicationId: medication.id,
+      scheduleId: schedule.id,
+      notificationIdentifier: notificationId,
+      triggerType: 'interval',
+      intervalHours: schedule.intervalHours,
+      scheduledTime: null,
+    });
+
+    notificationIds.push(notificationId);
+
+    return notificationIds;
+  }
+
+  const times = schedule.times ?? [];
+
+  if (times.length === 0) {
+    throw new Error('El horario por horas específicas requiere horas válidas.');
+  }
+
+  for (const time of times) {
+    const { hour, minute } = parseTime(time);
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `Hora de tomar ${medication.name}`,
+        body: buildMedicationNotificationBody(medication),
+        sound: 'default',
+        data: {
+          type: 'medication_reminder',
+          medicationId: medication.id,
+          scheduleId: schedule.id,
+          scheduledTime: time,
+        },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+        channelId: MEDIALERTA_NOTIFICATION_CHANNEL_ID,
+      },
+    });
+
+    await createNotificationSchedule({
+      medicationId: medication.id,
+      scheduleId: schedule.id,
+      notificationIdentifier: notificationId,
+      triggerType: 'daily_time',
+      scheduledTime: time,
+      intervalHours: null,
+    });
+
+    notificationIds.push(notificationId);
+  }
+
+  return notificationIds;
 };
 
 export const cancelAllMedicationNotifications = async (): Promise<void> => {

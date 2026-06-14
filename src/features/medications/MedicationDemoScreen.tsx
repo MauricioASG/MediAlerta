@@ -13,7 +13,11 @@ import {
   createMedicationSchedule,
   getSchedulesByMedicationId,
 } from '../../features/schedules';
-import { scheduleTestMedicationNotification } from '../../services/notification.service';
+import {
+  cancelMedicationNotifications,
+  scheduleMedicationNotifications,
+  scheduleTestMedicationNotification,
+} from '../../services/notification.service';
 import { DEFAULT_MEDICATION_TYPE } from '../../shared/constants/medicationTypes';
 import type { Medication } from '../../types/medication.types';
 import type { MedicationSchedule, ScheduleType } from '../../types/schedule.types';
@@ -146,7 +150,7 @@ export const MedicationDemoScreen = () => {
         endDate: null,
       });
 
-      await createMedicationSchedule({
+      const medicationSchedule = await createMedicationSchedule({
         medicationId: medication.id,
         scheduleType,
         intervalHours:
@@ -156,6 +160,28 @@ export const MedicationDemoScreen = () => {
             ? parseSpecificTimes(specificTimes)
             : null,
       });
+
+      try {
+        const notificationIds = await scheduleMedicationNotifications(
+          medication,
+          medicationSchedule,
+        );
+
+        console.log(
+          '[Notifications] Medication notifications scheduled:',
+          notificationIds,
+        );
+      } catch (notificationError) {
+        console.error(
+          '[Notifications] Error scheduling medication notifications:',
+          notificationError,
+        );
+
+        Alert.alert(
+          'Medicamento guardado',
+          'El medicamento y su horario se guardaron, pero no se pudieron programar las notificaciones.',
+        );
+      }
 
       setName('');
       setDosage('');
@@ -175,6 +201,7 @@ export const MedicationDemoScreen = () => {
 
   const handleDeactivateMedication = async (medicationId: string) => {
     try {
+      await cancelMedicationNotifications(medicationId);
       await deactivateMedication(medicationId);
       await loadMedications();
     } catch (error) {
