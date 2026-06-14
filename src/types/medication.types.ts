@@ -12,9 +12,9 @@ export interface Medication {
   name: string;
   type: MedicationType;
   dosage: string;
-  instructions?: string | null;
+  instructions: string | null;
   startDate: string;
-  endDate?: string | null;
+  endDate: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -24,9 +24,9 @@ export interface CreateMedicationInput {
   name: string;
   type: MedicationType;
   dosage: string;
-  instructions?: string | null;
+  instructions: string | null;
   startDate: string;
-  endDate?: string | null;
+  endDate: string | null;
 }
 
 export interface UpdateMedicationInput {
