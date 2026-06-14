@@ -78,3 +78,41 @@ export const CREATE_DOSE_LOGS_STATUS_INDEX = `
   CREATE INDEX IF NOT EXISTS idx_dose_logs_status
   ON dose_logs(status);
 `;
+
+export const CREATE_NOTIFICATION_SCHEDULES_TABLE = `
+  CREATE TABLE IF NOT EXISTS notification_schedules (
+    id TEXT PRIMARY KEY NOT NULL,
+    medication_id TEXT NOT NULL,
+    schedule_id TEXT NOT NULL,
+    notification_identifier TEXT NOT NULL,
+    trigger_type TEXT NOT NULL CHECK (
+      trigger_type IN ('interval', 'daily_time')
+    ),
+    scheduled_time TEXT,
+    interval_hours INTEGER,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (medication_id)
+      REFERENCES medications(id)
+      ON DELETE CASCADE,
+    FOREIGN KEY (schedule_id)
+      REFERENCES medication_schedules(id)
+      ON DELETE CASCADE
+  );
+`;
+
+export const CREATE_NOTIFICATION_SCHEDULES_MEDICATION_INDEX = `
+  CREATE INDEX IF NOT EXISTS idx_notification_schedules_medication_id
+  ON notification_schedules(medication_id);
+`;
+
+export const CREATE_NOTIFICATION_SCHEDULES_SCHEDULE_INDEX = `
+  CREATE INDEX IF NOT EXISTS idx_notification_schedules_schedule_id
+  ON notification_schedules(schedule_id);
+`;
+
+export const CREATE_NOTIFICATION_SCHEDULES_NOTIFICATION_IDENTIFIER_INDEX = `
+  CREATE INDEX IF NOT EXISTS idx_notification_schedules_notification_identifier
+  ON notification_schedules(notification_identifier);
+`;
