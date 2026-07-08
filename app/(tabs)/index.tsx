@@ -1,5 +1,5 @@
-import { MedicationDemoScreen } from '../../src/features/medications';
+import { MedicationListScreen } from '../../src/features/medications';
 
-export default function HomeScreen() {
-  return <MedicationDemoScreen />;
+export default function MedicationsScreen() {
+  return <MedicationListScreen />;
 }
