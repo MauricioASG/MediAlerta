@@ -8,6 +8,7 @@ import {
 } from '../features/notifications';
 import type { Medication } from '../types/medication.types';
 import type { MedicationSchedule } from '../types/schedule.types';
+import { ALL_WEEKDAYS, type Weekday } from '../types/weekday.types';
 
 const MEDIALERTA_NOTIFICATION_CHANNEL_ID = 'medialerta-reminders';
 
@@ -79,6 +80,12 @@ const buildMedicationNotificationBody = (medication: Medication): string => {
 
   return bodyParts.join('. ');
 };
+
+/**
+ * Maps a domain weekday (1=Mon…7=Sun) to expo-notifications weekday (1=Sun, 2=Mon…7=Sat).
+ * Formula: (weekday % 7) + 1
+ */
+const toExpoWeekday = (weekday: Weekday): number => (weekday % 7) + 1;
 
 export const requestNotificationPermissions = async (): Promise<boolean> => {
   await configureAndroidNotificationChannel();
@@ -202,6 +209,7 @@ export const scheduleMedicationNotifications = async (
       triggerType: 'interval',
       intervalHours: schedule.intervalHours,
       scheduledTime: null,
+      weekday: null,
     });
 
     notificationIds.push(notificationId);
@@ -215,39 +223,82 @@ export const scheduleMedicationNotifications = async (
     throw new Error('El horario por horas específicas requiere horas válidas.');
   }
 
+  const weekdays: Weekday[] = schedule.weekdays ?? ALL_WEEKDAYS;
+  const isAllDays = weekdays.length === ALL_WEEKDAYS.length;
+
   for (const time of times) {
     const { hour, minute } = parseTime(time);
 
-    const notificationId = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `Hora de tomar ${medication.name}`,
-        body: buildMedicationNotificationBody(medication),
-        sound: 'default',
-        data: {
-          type: 'medication_reminder',
+    if (isAllDays) {
+      // All 7 days — use daily trigger (1 notification per time slot).
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `Hora de tomar ${medication.name}`,
+          body: buildMedicationNotificationBody(medication),
+          sound: 'default',
+          data: {
+            type: 'medication_reminder',
+            medicationId: medication.id,
+            scheduleId: schedule.id,
+            scheduledTime: time,
+          },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour,
+          minute,
+          channelId: MEDIALERTA_NOTIFICATION_CHANNEL_ID,
+        },
+      });
+
+      await createNotificationSchedule({
+        medicationId: medication.id,
+        scheduleId: schedule.id,
+        notificationIdentifier: notificationId,
+        triggerType: 'daily_time',
+        scheduledTime: time,
+        intervalHours: null,
+        weekday: null,
+      });
+
+      notificationIds.push(notificationId);
+    } else {
+      // Specific days — one weekly notification per (day × time) combination.
+      for (const weekday of weekdays) {
+        const notificationId = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `Hora de tomar ${medication.name}`,
+            body: buildMedicationNotificationBody(medication),
+            sound: 'default',
+            data: {
+              type: 'medication_reminder',
+              medicationId: medication.id,
+              scheduleId: schedule.id,
+              scheduledTime: time,
+            },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+            weekday: toExpoWeekday(weekday),
+            hour,
+            minute,
+            channelId: MEDIALERTA_NOTIFICATION_CHANNEL_ID,
+          },
+        });
+
+        await createNotificationSchedule({
           medicationId: medication.id,
           scheduleId: schedule.id,
+          notificationIdentifier: notificationId,
+          triggerType: 'daily_time',
           scheduledTime: time,
-        },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute,
-        channelId: MEDIALERTA_NOTIFICATION_CHANNEL_ID,
-      },
-    });
+          intervalHours: null,
+          weekday,
+        });
 
-    await createNotificationSchedule({
-      medicationId: medication.id,
-      scheduleId: schedule.id,
-      notificationIdentifier: notificationId,
-      triggerType: 'daily_time',
-      scheduledTime: time,
-      intervalHours: null,
-    });
-
-    notificationIds.push(notificationId);
+        notificationIds.push(notificationId);
+      }
+    }
   }
 
   return notificationIds;

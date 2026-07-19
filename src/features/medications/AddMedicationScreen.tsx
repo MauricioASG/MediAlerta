@@ -6,7 +6,9 @@ import { AppButton } from '../../shared/ui/AppButton';
 import { FormField } from '../../shared/ui/FormField';
 import { palette, radius, shadow, spacing } from '../../shared/theme/tokens';
 import type { ScheduleType } from '../../types/schedule.types';
+import { ALL_WEEKDAYS, type Weekday } from '../../types/weekday.types';
 import { ScheduleTypePicker } from './components/ScheduleTypePicker';
+import { WeekdaySelector } from './components/WeekdaySelector';
 import { parseSpecificTimes } from './medication.helpers';
 import { useMedications } from './useMedications';
 
@@ -21,6 +23,7 @@ export const AddMedicationScreen = () => {
   const [scheduleType, setScheduleType] = useState<ScheduleType>('interval');
   const [intervalHours, setIntervalHours] = useState('8');
   const [specificTimes, setSpecificTimes] = useState('08:00, 14:00, 20:00');
+  const [selectedWeekdays, setSelectedWeekdays] = useState<Weekday[]>(ALL_WEEKDAYS);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -57,6 +60,14 @@ export const AddMedicationScreen = () => {
       return false;
     }
 
+    if (selectedWeekdays.length === 0) {
+      Alert.alert(
+        'Días requeridos',
+        'Selecciona al menos un día de la semana.',
+      );
+      return false;
+    }
+
     return true;
   };
 
@@ -78,6 +89,7 @@ export const AddMedicationScreen = () => {
           scheduleType === 'specific_times'
             ? parseSpecificTimes(specificTimes)
             : null,
+        weekdays: scheduleType === 'specific_times' ? selectedWeekdays : null,
       });
 
       router.back();
@@ -140,12 +152,18 @@ export const AddMedicationScreen = () => {
               keyboardType="numeric"
             />
           ) : (
-            <FormField
-              label="Horas específicas"
-              value={specificTimes}
-              onChangeText={setSpecificTimes}
-              placeholder="Ej. 08:00, 14:00, 20:00"
-            />
+            <>
+              <FormField
+                label="Horas específicas"
+                value={specificTimes}
+                onChangeText={setSpecificTimes}
+                placeholder="Ej. 08:00, 14:00, 20:00"
+              />
+              <WeekdaySelector
+                selected={selectedWeekdays}
+                onChange={setSelectedWeekdays}
+              />
+            </>
           )}
         </View>
 

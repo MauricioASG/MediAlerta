@@ -14,6 +14,7 @@ interface NotificationScheduleRow {
   trigger_type: NotificationTriggerType;
   scheduled_time: string | null;
   interval_hours: number | null;
+  weekday: number | null;
   is_active: number;
   created_at: string;
   updated_at: string;
@@ -29,6 +30,7 @@ const mapNotificationScheduleRowToNotificationSchedule = (
   triggerType: row.trigger_type,
   scheduledTime: row.scheduled_time,
   intervalHours: row.interval_hours,
+  weekday: row.weekday,
   isActive: Boolean(row.is_active),
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -49,6 +51,7 @@ export const createNotificationSchedule = async (
     triggerType: input.triggerType,
     scheduledTime: input.scheduledTime ?? null,
     intervalHours: input.intervalHours ?? null,
+    weekday: input.weekday ?? null,
     isActive: true,
     createdAt: now,
     updatedAt: now,
@@ -64,11 +67,12 @@ export const createNotificationSchedule = async (
         trigger_type,
         scheduled_time,
         interval_hours,
+        weekday,
         is_active,
         created_at,
         updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `,
     notificationSchedule.id,
     notificationSchedule.medicationId,
@@ -77,6 +81,7 @@ export const createNotificationSchedule = async (
     notificationSchedule.triggerType,
     notificationSchedule.scheduledTime,
     notificationSchedule.intervalHours,
+    notificationSchedule.weekday,
     notificationSchedule.isActive ? 1 : 0,
     notificationSchedule.createdAt,
     notificationSchedule.updatedAt,
@@ -100,6 +105,7 @@ export const getActiveNotificationSchedulesByMedicationId = async (
         trigger_type,
         scheduled_time,
         interval_hours,
+        weekday,
         is_active,
         created_at,
         updated_at
@@ -129,6 +135,7 @@ export const getActiveNotificationSchedulesByScheduleId = async (
         trigger_type,
         scheduled_time,
         interval_hours,
+        weekday,
         is_active,
         created_at,
         updated_at

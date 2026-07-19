@@ -1,3 +1,5 @@
+import type { Weekday } from './weekday.types';
+
 export type ScheduleType = 'interval' | 'specific_times';
 
 export interface MedicationSchedule {
@@ -6,6 +8,8 @@ export interface MedicationSchedule {
   scheduleType: ScheduleType;
   intervalHours: number | null;
   times: string[] | null;
+  /** Days of the week for specific_times schedules. null for interval schedules. */
+  weekdays: Weekday[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,10 +19,12 @@ export interface CreateMedicationScheduleInput {
   scheduleType: ScheduleType;
   intervalHours?: number | null;
   times?: string[] | null;
+  weekdays?: Weekday[] | null;
 }
 
 export interface UpdateMedicationScheduleInput {
   scheduleType?: ScheduleType;
   intervalHours?: number | null;
   times?: string[] | null;
+  weekdays?: Weekday[] | null;
 }

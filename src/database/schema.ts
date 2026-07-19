@@ -90,6 +90,7 @@ export const CREATE_NOTIFICATION_SCHEDULES_TABLE = `
     ),
     scheduled_time TEXT,
     interval_hours INTEGER,
+    weekday INTEGER,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -100,6 +101,47 @@ export const CREATE_NOTIFICATION_SCHEDULES_TABLE = `
       REFERENCES medication_schedules(id)
       ON DELETE CASCADE
   );
+`;
+
+export const CREATE_MEDICATION_SCHEDULE_DAYS_TABLE = `
+  CREATE TABLE IF NOT EXISTS medication_schedule_days (
+    id TEXT PRIMARY KEY NOT NULL,
+    schedule_id TEXT NOT NULL,
+    weekday INTEGER NOT NULL,
+    FOREIGN KEY (schedule_id)
+      REFERENCES medication_schedules(id)
+      ON DELETE CASCADE,
+    UNIQUE (schedule_id, weekday)
+  );
+`;
+
+export const CREATE_SCHEDULE_DAYS_SCHEDULE_INDEX = `
+  CREATE INDEX IF NOT EXISTS idx_medication_schedule_days_schedule_id
+  ON medication_schedule_days(schedule_id);
+`;
+
+/**
+ * ALTER TABLE to add weekday column to existing notification_schedules installations.
+ * For new installs the column is already included in CREATE_NOTIFICATION_SCHEDULES_TABLE.
+ */
+export const ALTER_NOTIFICATION_SCHEDULES_ADD_WEEKDAY = `
+  ALTER TABLE notification_schedules ADD COLUMN weekday INTEGER;
+`;
+
+/**
+ * Backfill all 7 weekdays for specific_times schedules that have no days yet.
+ * INSERT OR IGNORE is idempotent — safe to run on every startup.
+ */
+export const BACKFILL_SCHEDULE_DAYS = `
+  INSERT OR IGNORE INTO medication_schedule_days (id, schedule_id, weekday)
+  SELECT
+    'msd_' || ms.id || '_' || w.weekday,
+    ms.id,
+    w.weekday
+  FROM medication_schedules ms,
+       (SELECT 1 AS weekday UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL
+        SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7) w
+  WHERE ms.schedule_type = 'specific_times';
 `;
 
 export const CREATE_NOTIFICATION_SCHEDULES_MEDICATION_INDEX = `

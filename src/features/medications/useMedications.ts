@@ -12,6 +12,7 @@ import {
 import { DEFAULT_MEDICATION_TYPE } from '../../shared/constants/medicationTypes';
 import type { Medication } from '../../types/medication.types';
 import type { ScheduleType } from '../../types/schedule.types';
+import type { Weekday } from '../../types/weekday.types';
 import { buildScheduleSummary } from './medication.helpers';
 import {
   createMedication,
@@ -28,6 +29,7 @@ export interface NewMedicationInput {
   scheduleType: ScheduleType;
   intervalHours: number | null;
   times: string[] | null;
+  weekdays: Weekday[] | null;
 }
 
 export const useMedications = () => {
@@ -83,6 +85,7 @@ export const useMedications = () => {
         scheduleType: input.scheduleType,
         intervalHours: input.intervalHours,
         times: input.times,
+        weekdays: input.weekdays,
       });
 
       try {
