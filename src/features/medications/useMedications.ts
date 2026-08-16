@@ -11,7 +11,7 @@ import {
 } from '../../services/notification.service';
 import { DEFAULT_MEDICATION_TYPE } from '../../shared/constants/medicationTypes';
 import type { Medication } from '../../types/medication.types';
-import type { ScheduleType } from '../../types/schedule.types';
+import type { MedicationFormValues } from './components/MedicationForm';
 import { buildScheduleSummary } from './medication.helpers';
 import {
   createMedication,
@@ -21,14 +21,7 @@ import {
 
 type ScheduleSummaryByMedicationId = Record<string, string>;
 
-export interface NewMedicationInput {
-  name: string;
-  dosage: string;
-  instructions: string | null;
-  scheduleType: ScheduleType;
-  intervalHours: number | null;
-  times: string[] | null;
-}
+export type NewMedicationInput = MedicationFormValues;
 
 export const useMedications = () => {
   const [medications, setMedications] = useState<Medication[]>([]);

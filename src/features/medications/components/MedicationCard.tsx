@@ -12,12 +12,14 @@ import type { Medication } from '../../../types/medication.types';
 interface MedicationCardProps {
   medication: Medication;
   scheduleSummary: string;
+  onEdit: (medicationId: string) => void;
   onDeactivate: (medicationId: string) => void;
 }
 
 export const MedicationCard = ({
   medication,
   scheduleSummary,
+  onEdit,
   onDeactivate,
 }: MedicationCardProps) => {
   return (
@@ -36,17 +38,28 @@ export const MedicationCard = ({
         ) : null}
       </View>
 
-      <Pressable
-        onPress={() => onDeactivate(medication.id)}
-        accessibilityRole="button"
-        accessibilityLabel={`Desactivar ${medication.name}`}
-        style={({ pressed }) => [
-          styles.deactivateButton,
-          pressed && styles.pressed,
-        ]}
-      >
-        <Text style={styles.deactivateText}>Desactivar</Text>
-      </Pressable>
+      <View style={styles.actions}>
+        <Pressable
+          onPress={() => onEdit(medication.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Editar ${medication.name}`}
+          style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.editText}>Editar</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => onDeactivate(medication.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Desactivar ${medication.name}`}
+          style={({ pressed }) => [
+            styles.deactivateButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.deactivateText}>Desactivar</Text>
+        </Pressable>
+      </View>
     </View>
   );
 };
@@ -97,6 +110,22 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: 13,
     color: palette.textMuted,
+  },
+  actions: {
+    gap: spacing.sm,
+  },
+  editButton: {
+    minHeight: touchTarget,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.primarySoft,
+  },
+  editText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: palette.primaryDark,
   },
   deactivateButton: {
     minHeight: touchTarget,

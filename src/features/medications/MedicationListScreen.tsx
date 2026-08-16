@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import {
   ActivityIndicator,
@@ -33,12 +33,33 @@ const EmptyState = ({ onAdd }: { onAdd: () => void }) => (
 
 export const MedicationListScreen = () => {
   const router = useRouter();
-  const { medications, scheduleSummaries, isLoading, removeMedication } =
-    useMedications();
+  const {
+    medications,
+    scheduleSummaries,
+    isLoading,
+    loadMedications,
+    removeMedication,
+  } = useMedications();
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMedications();
+    }, [loadMedications]),
+  );
 
   const goToAdd = useCallback(() => {
     router.push('/medication/new');
   }, [router]);
+
+  const goToEdit = useCallback(
+    (medicationId: string) => {
+      router.push({
+        pathname: '/medication/[id]',
+        params: { id: medicationId },
+      });
+    },
+    [router],
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -64,6 +85,7 @@ export const MedicationListScreen = () => {
             <MedicationCard
               medication={item}
               scheduleSummary={scheduleSummaries[item.id] ?? 'Cargando horario...'}
+              onEdit={goToEdit}
               onDeactivate={removeMedication}
             />
           )}
